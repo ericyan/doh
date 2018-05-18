@@ -2,6 +2,7 @@ package doh
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -58,5 +59,43 @@ func HandleWireFormat(upstream string) func(http.ResponseWriter, *http.Request) 
 		}
 		w.Header().Set("Content-Type", "application/dns-message")
 		w.Write(packed)
+	}
+}
+
+func HandleJSON(upstream string) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			return
+		}
+
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		query := new(dns.Msg)
+		query.Question = []dns.Question{
+			dns.Question{
+				Name:   name,
+				Qtype:  dns.TypeA,
+				Qclass: dns.ClassINET,
+			},
+		}
+
+		answer, err := dns.Exchange(query, upstream)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		json, err := json.Marshal(NewMsg(answer))
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/dns-json")
+		w.Write(json)
 	}
 }
