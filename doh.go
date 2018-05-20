@@ -1,10 +1,12 @@
 package doh
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/miekg/dns"
 )
@@ -73,6 +75,11 @@ func HandleJSON(upstream string) func(http.ResponseWriter, *http.Request) {
 		if name == "" {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
+		}
+		if !strings.HasSuffix(name, ".") {
+			buf := bytes.NewBufferString(name)
+			buf.WriteString(".")
+			name = buf.String()
 		}
 
 		query := new(dns.Msg)
