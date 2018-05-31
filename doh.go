@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/miekg/dns"
@@ -82,11 +83,24 @@ func HandleJSON(upstream string) func(http.ResponseWriter, *http.Request) {
 			name = buf.String()
 		}
 
+		var qtype uint16
+		if t := r.URL.Query().Get("type"); t != "" {
+			if i, err := strconv.Atoi(t); err == nil {
+				qtype = uint16(i)
+			}
+		} else {
+			qtype = dns.TypeA
+		}
+		if qtype == dns.TypeNone {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
 		query := new(dns.Msg)
 		query.Question = []dns.Question{
 			dns.Question{
 				Name:   name,
-				Qtype:  dns.TypeA,
+				Qtype:  qtype,
 				Qclass: dns.ClassINET,
 			},
 		}
