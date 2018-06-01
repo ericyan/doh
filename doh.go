@@ -12,6 +12,21 @@ import (
 	"github.com/miekg/dns"
 )
 
+type Handler struct {
+	Upstream string
+}
+
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var f func(http.ResponseWriter, *http.Request)
+	if r.Method == http.MethodGet && r.URL.Query().Get("dns") == "" {
+		f = HandleJSON(h.Upstream)
+	} else {
+		f = HandleWireFormat(h.Upstream)
+	}
+
+	f(w, r)
+}
+
 func HandleWireFormat(upstream string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (

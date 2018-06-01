@@ -20,7 +20,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    *bind + ":" + strconv.Itoa(*port),
-		Handler: http.HandlerFunc(doh.HandleWireFormat(*upstream)),
+		Handler: &doh.Handler{*upstream},
 	}
 
 	log.Printf("Listening on %s:%d...\n", *bind, *port)
