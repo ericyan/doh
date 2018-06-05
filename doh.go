@@ -103,6 +103,10 @@ func HandleJSON(upstream string) func(http.ResponseWriter, *http.Request) {
 			if i, err := strconv.Atoi(t); err == nil {
 				qtype = uint16(i)
 			}
+
+			if i, err := ParseQTYPE(t); err == nil {
+				qtype = i
+			}
 		} else {
 			qtype = dns.TypeA
 		}
