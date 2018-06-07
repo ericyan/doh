@@ -1,7 +1,7 @@
 package doh
 
 import (
-	"errors"
+	"strconv"
 	"strings"
 
 	"github.com/miekg/dns"
@@ -89,10 +89,18 @@ var qtype = map[string]uint16{
 	"RESERVED":   dns.TypeReserved,
 }
 
-func ParseQTYPE(s string) (uint16, error) {
-	if v, ok := qtype[strings.ToUpper(s)]; ok {
-		return v, nil
+func ParseQTYPE(s string) uint16 {
+	if s == "" {
+		return dns.TypeA
 	}
 
-	return dns.TypeNone, errors.New("unknown qtype")
+	if v, err := strconv.Atoi(s); err == nil {
+		return uint16(v)
+	}
+
+	if v, ok := qtype[strings.ToUpper(s)]; ok {
+		return v
+	}
+
+	return dns.TypeNone
 }
