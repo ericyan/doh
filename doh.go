@@ -16,11 +16,16 @@ type Handler struct {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	resolver := r.URL.Query().Get("resolver")
+	if resolver == "" {
+		resolver = h.Upstream
+	}
+
 	var f func(http.ResponseWriter, *http.Request)
 	if r.Method == http.MethodGet && r.URL.Query().Get("dns") == "" {
-		f = HandleJSON(h.Upstream)
+		f = HandleJSON(resolver)
 	} else {
-		f = HandleWireFormat(h.Upstream)
+		f = HandleWireFormat(resolver)
 	}
 
 	f(w, r)
