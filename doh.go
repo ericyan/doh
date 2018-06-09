@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
 
@@ -115,6 +116,39 @@ func HandleJSON(upstream string) func(http.ResponseWriter, *http.Request) {
 				Qtype:  qtype,
 				Qclass: dns.ClassINET,
 			},
+		}
+
+		if ecs := r.URL.Query().Get("edns_client_subnet"); ecs != "" {
+			_, subnet, err := net.ParseCIDR(ecs)
+			if err != nil {
+				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+				return
+			}
+
+			mask, bits := subnet.Mask.Size()
+			var af uint16
+			if bits == 32 {
+				af = 1
+			} else {
+				af = 2
+			}
+
+			query.Extra = append(query.Extra, &dns.OPT{
+				Hdr: dns.RR_Header{
+					Name:   ".",
+					Class:  dns.DefaultMsgSize,
+					Rrtype: dns.TypeOPT,
+				},
+				Option: []dns.EDNS0{
+					&dns.EDNS0_SUBNET{
+						Code:          dns.EDNS0SUBNET,
+						Family:        af,
+						SourceNetmask: uint8(mask),
+						SourceScope:   0,
+						Address:       subnet.IP,
+					},
+				},
+			})
 		}
 
 		answer, err := dns.Exchange(query, upstream)
